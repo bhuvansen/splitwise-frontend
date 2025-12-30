@@ -49,12 +49,12 @@ export default function LoginPage() {
     if (status === "authenticated") {
       router.replace("/groups");
     }
-  }, [status, router]);
+  }, [status]);
 
   if (status === "loading") {
     return null; // or spinner
   }
-
+console.log("status::", status)
   return (
   <div className="min-h-screen px-6 pt-12">
   <div>

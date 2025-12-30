@@ -1,11 +1,14 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth";
+import { authOptions } from "@/lib/auth";
 
 export type Group = {
   id: string;
   name: string;
 };
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL!;
+
+/** FETCH GROUPS (used by page.tsx) */
 export async function getGroupPageProps(): Promise<{
   groups: Group[];
 }> {
@@ -15,8 +18,8 @@ export async function getGroupPageProps(): Promise<{
   }
 
   const token = (session as any).accessToken;
-  
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/groups`, {
+
+  const res = await fetch(`${BACKEND_URL}/groups`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -28,6 +31,30 @@ export async function getGroupPageProps(): Promise<{
   }
 
   const groups = await res.json();
-
   return { groups };
+}
+
+/** CREATE GROUP */
+export async function createGroup(name: string): Promise<Group> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Not authenticated");
+  }
+
+  const token = (session as any).accessToken;
+
+  const res = await fetch(`${BACKEND_URL}/groups`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create group");
+  }
+
+  return res.json();
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import CreateGroupModal from "@/components/CreateGroupModal";
+import { useRouter } from "next/navigation";
 
 export type Group = {
   id: string;
@@ -15,7 +16,7 @@ export default function GroupsPageClient({
   groups: Group[];
 }) {
   const [showModal, setShowModal] = useState(false);
-
+  const router = useRouter();
   return (
     <div className="px-6 pt-12 max-w-3xl">
       <div className="flex items-center justify-between mb-6">
@@ -43,7 +44,7 @@ export default function GroupsPageClient({
       </ul>
 
       {showModal && (
-        <CreateGroupModal onClose={() => setShowModal(false)} />
+        <CreateGroupModal onClose={() => setShowModal(false)} onCreated = {()=>router.refresh()} />
       )}
     </div>
   );
