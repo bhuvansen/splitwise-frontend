@@ -31,9 +31,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(res.data, { status: 201 });
   } catch (error: any) {
-    console.log("error:", error)
-    console.error("Create group error:", error?.response?.data || error);
-
+    
     return NextResponse.json(
       { message: error?.response?.data || error},
       { status: 500 }

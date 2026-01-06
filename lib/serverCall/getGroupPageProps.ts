@@ -58,3 +58,19 @@ export async function createGroup(name: string): Promise<Group> {
 
   return res.json();
 }
+
+
+export async function deleteGroup(groupId: string): Promise<void> {
+  try{
+   const res = await fetch(`/api/groups/${groupId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete group");
+      }
+  }catch(err:any){
+    throw new Error(err.message || "Something went wrong");
+  }
+}

@@ -9,9 +9,7 @@ export default function GroupsError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error("Groups page error:", error);
-  }, [error]);
+ 
 
   return (
     <div className="px-6 pt-12 max-w-3xl">

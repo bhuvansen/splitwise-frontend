@@ -11,7 +11,6 @@ export async function getGroups() {
   }
 
   const token = (session as any).accessToken;
-  console.log("token::", token)
   const res = await fetch(`${BACKEND_URL}/groups`, {
     method: "GET",
     headers: {
@@ -19,7 +18,6 @@ export async function getGroups() {
     },
     cache: "no-store",
   });
-  console.log("res::", res)
   if (!res.ok) {
     throw new Error("Failed to fetch groups");
   }

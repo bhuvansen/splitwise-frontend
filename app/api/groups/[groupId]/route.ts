@@ -5,7 +5,6 @@ import { NextResponse } from "next/server"
 
 export async function DELETE(_req: Request, { params }: { params: { groupId: string } }) {
     const { groupId } = await params
-    console.log("groupId::", params, groupId)
     const session = await getServerSession(authOptions)
 
     if (!session) {
