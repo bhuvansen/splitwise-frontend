@@ -5,7 +5,7 @@ import Link from "next/link"
 import CreateGroupModal from "@/components/CreateGroupModal"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { deleteGroup } from "@/lib/serverCall/getGroupPageProps"
+import { deleteGroup } from "@/lib/serverCall/groupPageCalls"
 export type Group = {
     id: string
     name: string

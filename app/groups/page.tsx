@@ -1,8 +1,8 @@
-import GroupsPageClient from "@/components/GroupsPageClient";
-import { getGroupPageProps } from "@/lib/serverCall/getGroupPageProps";
+import GroupsPageClient from "@/components/GroupsPageClient"
+import { getGroupPageProps } from "@/lib/serverCall/groupPageCalls"
 
 export default async function GroupsPage() {
-  const { groups } = await getGroupPageProps();
+    const { groups } = await getGroupPageProps()
 
-  return <GroupsPageClient groups={groups} />;
+    return <GroupsPageClient groups={groups} />
 }
