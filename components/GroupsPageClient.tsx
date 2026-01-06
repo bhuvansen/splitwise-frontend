@@ -17,6 +17,20 @@ export default function GroupsPageClient({
 }) {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
+
+  async function deleteGroup(groupId: string) {
+  const res = await fetch(`/api/groups/${groupId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    alert("Failed to delete group");
+    return;
+  }
+
+  router.refresh()
+}
+
   return (
     <div className="px-6 pt-12 max-w-3xl">
       <div className="flex items-center justify-between mb-6">
@@ -32,13 +46,22 @@ export default function GroupsPageClient({
 
       <ul className="space-y-3">
         {groups.map((group) => (
-          <li key={group.id}>
+          <li key={group.id}
+      className="flex items-center justify-between border rounded p-4"
+          
+          >
             <Link
               href={`/groups/${group.id}`}
-              className="block border rounded p-4 hover:bg-gray-50"
+              className=" hover:bg-gray-50"
             >
               {group.name}
             </Link>
+            <button
+        onClick={() => deleteGroup(group.id)}
+        className="text-sm text-red-600 hover:bg-gray-50"
+      >
+        Delete
+      </button>
           </li>
         ))}
       </ul>

@@ -77,13 +77,13 @@ export default function CreateGroupModal({ onClose, onCreated }: Props) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name }),
             })
+            setLoading(false)
             onCreated()
             onClose()
         } catch (e) {
-            alert("Failed to create group")
-        } finally {
             setLoading(false)
-        }
+            alert("Failed to create group")
+        } 
     }
 
     return (
