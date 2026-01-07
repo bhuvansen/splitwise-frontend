@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import AddMemberModal from "./AddMemberModal"
 import { Expense } from "@/lib/serverCall/groupDetailsPageCalls"
 import Link from "next/link"
 import AddExpenseModal from "./AddExpenseModal"
+import ExpenseDetailsModal from "./ExpenseDetailsModal"
 
 type Member = {
     id: string
@@ -16,19 +17,63 @@ type Member = {
     }
 }
 
+type Settlement = {
+    fromUserId: string
+    toUserId: string
+    amount: number
+}
+
 export default function GroupDetailsClient({
     groupId,
     members,
     expenses,
+    settlements,
+    currentEmailId,
 }: {
     groupId: string
     members: Member[]
     expenses: Expense[]
+    settlements: Settlement[]
+    currentEmailId: string
 }) {
     const [showAdd, setShowAdd] = useState(false)
     const [showAddExpense, setShowAddExpense] = useState(false)
+    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
 
     const router = useRouter()
+
+    const currentUserId = members.find((m) => m.user.email === currentEmailId)?.user.id
+
+    const balances = useMemo(() => {
+        const balanceMap: Record<string, number> = {}
+        console.log("balanceMap initial:", balanceMap)
+        console.log("Members in balance calculation:", members)
+        members.forEach((m) => {
+            balanceMap[m.user.id] = 0
+        })
+        expenses.forEach((expense) => {
+            const payer = expense.paidByUserId
+            console.log("payer::", payer)
+            expense.splits.forEach((split) => {
+                console.log("Processing split:", split, payer, split.shareAmount)
+                if (split.userId === payer) return
+
+                // split user owes
+                balanceMap[split.userId] -= split.shareAmount
+
+                // payer should get
+                balanceMap[payer] += split.shareAmount
+            })
+        })
+        console.log("Balances after expenses:", balanceMap)
+
+        settlements.forEach((settlement) => {
+          balanceMap[settlement.fromUserId] += settlement.amount;
+          balanceMap[settlement.toUserId] -= settlement.amount;
+        });
+
+        return balanceMap
+    }, [members, expenses, settlements])
 
     return (
         <div className="px-6 pt-12 max-w-3xl">
@@ -48,43 +93,124 @@ export default function GroupDetailsClient({
                     </li>
                 ))}
             </ul>
+            <br />
+            <div className="border rounded p-4 ">
+                <h2 className="font-semibold mb-3">Group Balance</h2>
+
+                <ul className="space-y-2">
+                    {members.map((member) => {
+                        const id = member.user.id
+                        const email  = member.user.email
+                        const amount = balances[id]
+
+                        if (amount === 0) {
+                            return (
+                                <li key={id} className="text-sm text-gray-500">
+                                    {email === currentEmailId ? "You" : member.user.name} are settled
+                                </li>
+                            )
+                        }
+
+                        return (
+                            <li key={id} className="flex justify-between text-sm">
+                                <span>{email === currentEmailId ? "You" : member.user.name}</span>
+
+                                <span className={amount < 0 ? "text-red-600" : "text-green-600"}>
+                                    {amount < 0 ? `owes ₹${Math.abs(amount)}` : `gets ₹${amount}`}
+                                </span>
+                            </li>
+                        )
+                    })}
+                </ul>
+            </div>
             {/* Expenses Section */}
             <div className="mt-10">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold">Expenses</h2>
 
-                    <button className="text-sm border px-4 py-2 rounded hover:bg-gray-100" onClick={()=>setShowAddExpense(true)}>+ Add Expense</button>
+                    <button
+                        className="text-sm border px-4 py-2 rounded hover:bg-gray-100"
+                        onClick={() => setShowAddExpense(true)}
+                    >
+                        + Add Expense
+                    </button>
                 </div>
 
                 {expenses.length === 0 ? (
                     <p className="text-sm text-gray-500">No expenses yet.</p>
                 ) : (
                     <ul className="space-y-3">
-                        {expenses.map((e) => (
-                            <li key={e.id} className="border rounded p-4 flex justify-between">
-                                <div>
-                                    <p className="font-medium">{e.description}</p>
-                                    <p className="text-sm text-gray-500">Paid by {e.paidBy.name}</p>
-                                </div>
+                        {expenses.map((expense) => {
+                            const isPayer = expense.paidByUserId === currentUserId
 
-                                <span className="font-semibold">₹{e.amount}</span>
-                            </li>
-                        ))}
+                            let personalAmount: number | null = null
+                            let label = ""
+
+                            if (isPayer) {
+                                // You paid → others owe you
+                                personalAmount = expense.splits
+                                    .filter((s) => s.userId !== currentUserId)
+                                    .reduce((sum, s) => sum + s.shareAmount, 0)
+
+                                label = "You get"
+                            } else {
+                                // You owe
+                                const mySplit = expense.splits.find((s) => s.userId === currentUserId)
+
+                                if (mySplit) {
+                                    personalAmount = mySplit.shareAmount
+                                    label = "You owe"
+                                }
+                            }
+
+                            return (
+                                <li
+                                    key={expense.expenseId}
+                                    className="border rounded p-4 cursor-pointer hover:bg-gray-50"
+                                    onClick={() => setSelectedExpense(expense)}
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-medium">{expense.description}</p>
+
+                                            {personalAmount !== null && (
+                                                <p
+                                                    className={`text-sm ${
+                                                        label === "You owe" ? "text-red-600" : "text-green-600"
+                                                    }`}
+                                                >
+                                                    {label} ₹{personalAmount}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <span className="font-semibold">₹{expense.amount}</span>
+                                    </div>
+                                </li>
+                            )
+                        })}
                     </ul>
                 )}
             </div>
-
             <Link href="/groups" className="text-sm text-gray-500 hover:font-bold mb-6 inline-block">
                 ← Back to Groups
             </Link>
             {showAddExpense && (
-            <AddExpenseModal
-                groupId={groupId}
-                members={members}
-                onClose={() => setShowAddExpense(false)}
-                onCreated={() => router.refresh()}
-            />
+                <AddExpenseModal
+                    groupId={groupId}
+                    members={members}
+                    onClose={() => setShowAddExpense(false)}
+                    onCreated={() => router.refresh()}
+                />
             )}
+            {selectedExpense && (
+                <ExpenseDetailsModal
+                    expense={selectedExpense}
+                    members={members}
+                    onClose={() => setSelectedExpense(null)}
+                />
+            )}
+
             {showAdd && (
                 <AddMemberModal groupId={groupId} onClose={() => setShowAdd(false)} onAdded={() => router.refresh()} />
             )}

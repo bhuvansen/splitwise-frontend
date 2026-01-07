@@ -1,4 +1,4 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions: NextAuthOptions = {
@@ -35,3 +35,13 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export async function getCurrentEmailId() {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
+    throw new Error("Not authenticated");
+  }
+
+  return session.user.email;
+}
+

@@ -1,8 +1,10 @@
 "use client";
 
 import { createExpense, GroupMember } from "@/lib/serverCall/groupDetailsPageCalls";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+type SplitMode = "EQUAL" | "PERCENT" | "EXACT";
 
 export default function AddExpenseModal({
   groupId,
@@ -17,17 +19,43 @@ export default function AddExpenseModal({
 }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [paidBy, setPaidBy] = useState(members[0]?.id);
+  const [paidBy, setPaidBy] = useState(members[0]?.user.id);
   const [loading, setLoading] = useState(false);
+
+  const [splitMode, setSplitMode] = useState<SplitMode>("EQUAL");
+  const [splits, setSplits] = useState<Record<string, number>>({});
+
+
+  useEffect(() => {
+    if (splitMode !== "EQUAL") return;
+
+    const total = Number(amount);
+    if (!total || members.length === 0) return;
+
+    const perPerson = Number((total / members.length).toFixed(2));
+
+    const next: Record<string, number> = {};
+    members.forEach((m) => {
+      next[m.user.id] = perPerson;
+    });
+
+    setSplits(next);
+  }, [amount, splitMode, members]);
+
 
   async function handleSubmit() {
     try {
       setLoading(true);
 
-      const splitAmount = Number(amount) / members.length;
-      const splits = Object.fromEntries(
-        members.map((member) => [member.user.id, splitAmount])
+      const totalSplit = Object.values(splits).reduce(
+        (a, b) => a + b,
+        0
       );
+
+      if (Number(totalSplit.toFixed(2)) !== Number(amount)) {
+        toast.error("Split total must equal expense amount");
+        return;
+      }
 
       await createExpense({
         groupId,
@@ -78,6 +106,69 @@ export default function AddExpenseModal({
             </option>
           ))}
         </select>
+
+        <div className="flex gap-2 text-sm">
+          {(["EQUAL", "PERCENT", "EXACT"] as SplitMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setSplitMode(mode)}
+              className={`px-3 py-1 border rounded ${
+                splitMode === mode ? "bg-gray-100" : ""
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {members.map((member) => (
+            <div
+              key={member.user.id}
+              className="flex items-center justify-between"
+            >
+              <span>{member.user.name}</span>
+
+              {splitMode === "EQUAL" && (
+                <span className="text-sm text-gray-500">
+                  ₹{splits[member.user.id] ?? 0}
+                </span>
+              )}
+
+              {splitMode === "PERCENT" && (
+                <input
+                  type="number"
+                  placeholder="%"
+                  className="w-20 border rounded px-2 py-1 text-sm"
+                  onChange={(e) => {
+                    const percent = Number(e.target.value);
+                    setSplits((prev) => ({
+                      ...prev,
+                      [member.user.id]: Number(
+                        ((Number(amount) * percent) / 100).toFixed(2)
+                      ),
+                    }));
+                  }}
+                />
+              )}
+
+              {splitMode === "EXACT" && (
+                <input
+                  type="number"
+                  placeholder="₹"
+                  className="w-20 border rounded px-2 py-1 text-sm"
+                  value={splits[member.user.id] ?? ""}
+                  onChange={(e) =>
+                    setSplits((prev) => ({
+                      ...prev,
+                      [member.user.id]: Number(e.target.value),
+                    }))
+                  }
+                />
+              )}
+            </div>
+          ))}
+        </div>
 
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 border rounded">

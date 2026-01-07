@@ -32,15 +32,20 @@ export async function getGroupDetailsPageProps(groupId: string) {
     return { members }
 }
 
+export type ExpenseSplit = {
+  userId: string;
+  shareAmount: number;
+};
+
 export type Expense = {
-    id: string
-    description: string
-    amount: number
-    paidBy: {
-        id: string
-        name: string
-    }
-}
+  expenseId: string;
+  description: string;
+  amount: number;
+  paidByUserId: string;
+  createdAt: string; // Instant → string in JSON
+  splits: ExpenseSplit[];
+};
+
 
 export async function getGroupExpenses(groupId: string) {
     const session = await getServerSession(authOptions)
@@ -72,4 +77,24 @@ export async function createExpense(payload: {
 }) {
   const res = await axios.post("/api/expenses", payload);
   return res.data;
+}
+
+export async function getSettlements(groupId: string) {
+    const session = await getServerSession(authOptions)
+    if (!session) throw new Error("Not authenticated")
+
+    const token = (session as any).accessToken
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/groups/${groupId}/settlements`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+    })
+
+    if (!res.ok) {
+        throw new Error("Failed to fetch expenses")
+    }
+
+    return res.json()
 }

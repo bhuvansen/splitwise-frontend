@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("entered app server");
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(
@@ -28,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(res.data);
   } catch (err: any) {
+    console.error("Error creating expense:", err.response);
     return NextResponse.json(
       { message: err.response?.data?.message || "Failed to create expense" },
       { status: err.response?.status || 500 }
