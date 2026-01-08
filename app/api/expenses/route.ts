@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(res.data);
   } catch (err: any) {
-    console.error("Error creating expense:", err.response);
     return NextResponse.json(
       { message: err.response?.data?.message || "Failed to create expense" },
       { status: err.response?.status || 500 }

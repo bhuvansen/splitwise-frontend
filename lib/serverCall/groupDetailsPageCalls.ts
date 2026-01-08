@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import axios from "axios";
+import axios from "axios"
 
 export type GroupMember = {
     id: string
@@ -33,19 +33,18 @@ export async function getGroupDetailsPageProps(groupId: string) {
 }
 
 export type ExpenseSplit = {
-  userId: string;
-  shareAmount: number;
-};
+    userId: string
+    shareAmount: number
+}
 
 export type Expense = {
-  expenseId: string;
-  description: string;
-  amount: number;
-  paidByUserId: string;
-  createdAt: string; // Instant → string in JSON
-  splits: ExpenseSplit[];
-};
-
+    expenseId: string
+    description: string
+    amount: number
+    paidByUserId: string
+    createdAt: string // Instant → string in JSON
+    splits: ExpenseSplit[]
+}
 
 export async function getGroupExpenses(groupId: string) {
     const session = await getServerSession(authOptions)
@@ -67,16 +66,15 @@ export async function getGroupExpenses(groupId: string) {
     return res.json()
 }
 
-
 export async function createExpense(payload: {
-  groupId: string;
-  description: string;
-  amount: number;
-  paidByUserId: string;
-  splits: Record<string, number>;
+    groupId: string
+    description: string
+    amount: number
+    paidByUserId: string
+    splits: Record<string, number>
 }) {
-  const res = await axios.post("/api/expenses", payload);
-  return res.data;
+    const res = await axios.post("/api/expenses", payload)
+    return res.data
 }
 
 export async function getSettlements(groupId: string) {
@@ -97,4 +95,19 @@ export async function getSettlements(groupId: string) {
     }
 
     return res.json()
+}
+
+export async function createSettlement(
+    groupId: string,
+    payload: {
+        fromUserId: string
+        toUserId: string
+        amount: number
+    }
+) {
+    try {
+        await axios.post(`/api/groups/${groupId}/settlements`, payload)
+    } catch (err: any) {
+        throw new Error(err.message || "Something went wrong")
+    }
 }

@@ -7,8 +7,9 @@ import { Expense } from "@/lib/serverCall/groupDetailsPageCalls"
 import Link from "next/link"
 import AddExpenseModal from "./AddExpenseModal"
 import ExpenseDetailsModal from "./ExpenseDetailsModal"
+import SettleUpModal from "./SettleUpModal"
 
-type Member = {
+export type Member = {
     id: string
     user: {
         id: string
@@ -39,23 +40,19 @@ export default function GroupDetailsClient({
     const [showAdd, setShowAdd] = useState(false)
     const [showAddExpense, setShowAddExpense] = useState(false)
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
-
+    const [showSettleModal, setShowSettleModal] = useState(false)
     const router = useRouter()
 
-    const currentUserId = members.find((m) => m.user.email === currentEmailId)?.user.id
+    const currentUserId = members.find((m) => m.user.email === currentEmailId)?.user.id || ""
 
     const balances = useMemo(() => {
         const balanceMap: Record<string, number> = {}
-        console.log("balanceMap initial:", balanceMap)
-        console.log("Members in balance calculation:", members)
-        members.forEach((m) => {
-            balanceMap[m.user.id] = 0
+        members.forEach((member) => {
+            balanceMap[member.user.id] = 0
         })
         expenses.forEach((expense) => {
             const payer = expense.paidByUserId
-            console.log("payer::", payer)
             expense.splits.forEach((split) => {
-                console.log("Processing split:", split, payer, split.shareAmount)
                 if (split.userId === payer) return
 
                 // split user owes
@@ -65,16 +62,58 @@ export default function GroupDetailsClient({
                 balanceMap[payer] += split.shareAmount
             })
         })
-        console.log("Balances after expenses:", balanceMap)
 
         settlements.forEach((settlement) => {
-          balanceMap[settlement.fromUserId] += settlement.amount;
-          balanceMap[settlement.toUserId] -= settlement.amount;
-        });
+            balanceMap[settlement.fromUserId] += settlement.amount
+            balanceMap[settlement.toUserId] -= settlement.amount
+        })
 
         return balanceMap
     }, [members, expenses, settlements])
 
+    const pairwiseBalances = useMemo(() => {
+        const map: Record<string, number> = {}
+
+        members.forEach((member) => {
+            if (member.user.id !== currentUserId) {
+                map[member.user.id] = 0
+            }
+        })
+
+        // Expenses
+        expenses.forEach((expense) => {
+            const payer = expense.paidByUserId
+
+            expense.splits.forEach((split) => {
+                if (split.userId === payer) return
+
+                // Case 1: I paid, other owes me
+                if (payer === currentUserId && split.userId !== currentUserId) {
+                    map[split.userId] += split.shareAmount
+                }
+
+                // Case 2: Other paid, I owe them
+                if (split.userId === currentUserId && payer !== currentUserId) {
+                    map[payer] -= split.shareAmount
+                }
+            })
+        })
+
+        // Settlements
+        settlements.forEach((s) => {
+            // I paid someone
+            if (s.fromUserId === currentUserId) {
+                map[s.toUserId] += s.amount
+            }
+
+            // Someone paid me
+            if (s.toUserId === currentUserId) {
+                map[s.fromUserId] -= s.amount
+            }
+        })
+
+        return map
+    }, [members, expenses, settlements, currentUserId])
     return (
         <div className="px-6 pt-12 max-w-3xl">
             <div className="flex items-center justify-between mb-6">
@@ -93,36 +132,57 @@ export default function GroupDetailsClient({
                     </li>
                 ))}
             </ul>
-            <br />
-            <div className="border rounded p-4 ">
+
+            <div className="border rounded p-4 mt-4 mb-4">
                 <h2 className="font-semibold mb-3">Group Balance</h2>
 
-                <ul className="space-y-2">
-                    {members.map((member) => {
-                        const id = member.user.id
-                        const email  = member.user.email
-                        const amount = balances[id]
+                {Object.values(pairwiseBalances).every((v) => v === 0) ? (
+                    <p className="text-sm text-gray-500">You are fully settled</p>
+                ) : (
+                    <ul className="space-y-2 text-sm">
+                        {members
+                            .filter((m) => m.user.id !== currentUserId)
+                            .map((member) => {
+                                const amount = pairwiseBalances[member.user.id]
 
-                        if (amount === 0) {
-                            return (
-                                <li key={id} className="text-sm text-gray-500">
-                                    {email === currentEmailId ? "You" : member.user.name} are settled
-                                </li>
-                            )
-                        }
+                                if (amount === 0) return null
 
-                        return (
-                            <li key={id} className="flex justify-between text-sm">
-                                <span>{email === currentEmailId ? "You" : member.user.name}</span>
+                                return (
+                                    <li key={member.user.id} className="flex justify-between">
+                                        <span>
+                                            {amount > 0
+                                                ? `${member.user.name} owes you`
+                                                : `You owe ${member.user.name}`}
+                                        </span>
 
-                                <span className={amount < 0 ? "text-red-600" : "text-green-600"}>
-                                    {amount < 0 ? `owes ₹${Math.abs(amount)}` : `gets ₹${amount}`}
-                                </span>
-                            </li>
-                        )
-                    })}
-                </ul>
+                                        <span className={amount > 0 ? "text-green-600" : "text-red-600"}>
+                                            ₹{Math.abs(amount)}
+                                        </span>
+                                    </li>
+                                )
+                            })}
+                    </ul>
+                )}
             </div>
+
+            {balances[currentUserId] < 0 && (
+                <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={() => setShowSettleModal(true)}>
+                    Settle up
+                </button>
+            )}
+
+            {showSettleModal && (
+                <SettleUpModal
+                    groupId={groupId}
+                    balances={balances}
+                    pairwiseBalances={pairwiseBalances}
+                    members={members}
+                    currentUserId={currentUserId}
+                    onClose={() => setShowSettleModal(false)}
+                    onSettled={() => router.refresh()}
+                />
+            )}
+
             {/* Expenses Section */}
             <div className="mt-10">
                 <div className="flex items-center justify-between mb-4">
