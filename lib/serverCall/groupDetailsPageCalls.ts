@@ -111,3 +111,20 @@ export async function createSettlement(
         throw new Error(err.message || "Something went wrong")
     }
 }
+
+export async function updateExpense(
+    expenseId: string,
+    payload: {
+        amount: number
+        description: string
+        paidByUserId: string
+        splits: { userId: string; shareAmount: number }[]
+    }
+) {
+    try {
+        const res = await axios.put(`/api/expenses/${expenseId}`, payload)
+        return res.data
+    } catch (err: any) {
+        throw new Error(err.message || "Something went wrong")
+    }
+}

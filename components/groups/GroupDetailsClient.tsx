@@ -8,6 +8,7 @@ import Link from "next/link"
 import AddExpenseModal from "./AddExpenseModal"
 import ExpenseDetailsModal from "./ExpenseDetailsModal"
 import SettleUpModal from "./SettleUpModal"
+import axios from "axios"
 
 export type Member = {
     id: string
@@ -57,12 +58,10 @@ export default function GroupDetailsClient({
 
                 // split user owes
                 balanceMap[split.userId] -= split.shareAmount
-
                 // payer should get
                 balanceMap[payer] += split.shareAmount
             })
         })
-
         settlements.forEach((settlement) => {
             balanceMap[settlement.fromUserId] += settlement.amount
             balanceMap[settlement.toUserId] -= settlement.amount
@@ -70,7 +69,6 @@ export default function GroupDetailsClient({
 
         return balanceMap
     }, [members, expenses, settlements])
-
     const pairwiseBalances = useMemo(() => {
         const map: Record<string, number> = {}
 
@@ -114,6 +112,10 @@ export default function GroupDetailsClient({
 
         return map
     }, [members, expenses, settlements, currentUserId])
+    const hasOutstandingPayments = Object.values(pairwiseBalances).some((amount) => amount < 0)
+
+
+
     return (
         <div className="px-6 pt-12 max-w-3xl">
             <div className="flex items-center justify-between mb-6">
@@ -165,11 +167,15 @@ export default function GroupDetailsClient({
                 )}
             </div>
 
-            {balances[currentUserId] < 0 && (
-                <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={() => setShowSettleModal(true)}>
-                    Settle up
-                </button>
-            )}
+            <button
+                className={`px-4 py-2 rounded text-white ${
+                    hasOutstandingPayments ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 !cursor-not-allowed"
+                }`}
+                disabled={!hasOutstandingPayments}
+                onClick={() => setShowSettleModal(true)}
+            >
+                Settle up
+            </button>
 
             {showSettleModal && (
                 <SettleUpModal
@@ -268,6 +274,8 @@ export default function GroupDetailsClient({
                     expense={selectedExpense}
                     members={members}
                     onClose={() => setSelectedExpense(null)}
+                    // groupId={groupId}
+                onSave={() => router.refresh()}
                 />
             )}
 

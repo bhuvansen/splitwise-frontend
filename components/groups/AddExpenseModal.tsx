@@ -4,7 +4,7 @@ import { createExpense, GroupMember } from "@/lib/serverCall/groupDetailsPageCal
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-type SplitMode = "EQUAL" | "PERCENT" | "EXACT";
+export type SplitMode = "EQUAL" | "PERCENT" | "EXACT";
 
 export default function AddExpenseModal({
   groupId,

@@ -29,6 +29,8 @@ export default function SettleUpModal({
 
     const [toUserId, setToUserId] = useState<string>(creditors[0]?.user.id || "")
     const [amount, setAmount] = useState<number>(0)
+    const [error, setError] = useState<string | null>(null)
+
     const [loading, setLoading] = useState(false)
 
     const amountOwed = pairwiseBalances[toUserId]
@@ -57,6 +59,27 @@ export default function SettleUpModal({
         }
     }
 
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setAmount(Number(value))
+
+        const numericValue = Number(value)
+
+        if (!value || numericValue <= 0) {
+            setError("Enter a valid amount")
+            return
+        }
+
+        if (numericValue > maxAmount) {
+            setError(`You only owe ₹${maxAmount}`)
+            return
+        }
+
+        setError(null)
+    }
+
+    const isSettleDisabled = !amount || !!error || amount <= 0 || amount > maxAmount
+
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -82,12 +105,14 @@ export default function SettleUpModal({
                         <label className="text-sm">Amount</label>
                         <>
                             <input
-                                className="w-full border rounded p-2"
-                                value={amount}
+                                min={1}
                                 max={maxAmount}
-                                onChange={(e) => setAmount(Number(e.target.value))}
+                                value={amount}
+                                onChange={handleAmountChange}
+                                className="w-full border rounded px-3 py-2"
+                                placeholder={`Max ₹${maxAmount}`}
                             />
-                            <p className="text-xs text-gray-500">Max: ₹{maxAmount}</p>
+                            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
                         </>
                     </div>
                 </div>
@@ -97,8 +122,10 @@ export default function SettleUpModal({
                         Cancel
                     </button>
                     <button
-                        disabled={loading || amount <= 0}
-                        className="px-4 py-2 bg-green-600 text-white rounded"
+                        className={`px-4 py-2 rounded text-white ${
+                            isSettleDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                        }`}
+                        disabled={isSettleDisabled}
                         onClick={handleSubmit}
                     >
                         {loading ? "Settling..." : "Settle"}
