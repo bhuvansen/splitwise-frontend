@@ -4,8 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import CreateGroupModal from "@/components/CreateGroupModal"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { deleteGroup } from "@/lib/serverCall/groupPageCalls"
+import DeleteModal from "./DeleteModal"
+
 export type Group = {
     id: string
     name: string
@@ -13,18 +13,9 @@ export type Group = {
 
 export default function GroupsPageClient({ groups }: { groups: Group[] }) {
     const [showModal, setShowModal] = useState(false)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [groupId, setGroupId] = useState<string>("")
     const router = useRouter()
-
-    async function deleteGroupHandler(groupId: string) {
-        try {
-            await deleteGroup(groupId)
-
-            toast.success("Group deleted")
-            router.refresh()
-        } catch (err: any) {
-            toast.error(err.message)
-        }
-    }
 
     return (
         <div className="px-6 pt-12 max-w-3xl">
@@ -39,25 +30,42 @@ export default function GroupsPageClient({ groups }: { groups: Group[] }) {
                 </button>
             </div>
 
-            <ul className="space-y-3">
-                {groups.map((group) => (
-                    <li key={group.id} className="flex items-center justify-between border rounded p-4">
-                        <Link href={`/groups/${group.id}`} className=" hover:bg-gray-50">
-                            {group.name}
-                        </Link>
-                        <button
-                            onClick={() => deleteGroupHandler(group.id)}
-                            className="text-sm text-red-600 hover:bg-gray-50"
-                        >
-                            Delete
-                        </button>
-                    </li>
-                ))}
-            </ul>
+            {groups.length > 0 ? (
+                <ul className="space-y-3">
+                    {groups.map((group) => (
+                        <li key={group.id} className="flex items-center justify-between border rounded p-4">
+                            <Link href={`/groups/${group.id}`} className=" hover:bg-gray-50">
+                                {group.name}
+                            </Link>
+                            <button
+                                onClick={() => {
+                                    setGroupId(group.id)
+                                    setShowDeleteModal(true)
+                                }}
+                                className="text-sm text-red-600 hover:bg-gray-50"
+                            >
+                                Delete
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-gray-500">You are not part of any groups yet.</p>
+            )}
             <button onClick={() => router.push("/")} className="border mt-4 px-4 py-2 rounded">
                 Back
             </button>
             {showModal && <CreateGroupModal onClose={() => setShowModal(false)} onCreated={() => router.refresh()} />}
+            {showDeleteModal && (
+                <DeleteModal
+                    onClose={() => setShowDeleteModal(false)}
+                    onDeleted={() => {
+                        router.refresh()
+                        setShowDeleteModal(false)
+                    }}
+                    groupId={groupId}
+                />
+            )}
         </div>
     )
 }

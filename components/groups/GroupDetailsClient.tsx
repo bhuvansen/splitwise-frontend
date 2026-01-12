@@ -112,7 +112,6 @@ export default function GroupDetailsClient({
         return map
     }, [members, expenses, settlements, currentUserId])
     const hasOutstandingPayments = Object.values(pairwiseBalances).some((amount) => amount < 0)
-
     return (
         <div className="px-6 pt-12 max-w-3xl">
             <div className="flex items-center justify-between mb-6">
@@ -191,8 +190,9 @@ export default function GroupDetailsClient({
                     <h2 className="text-xl font-semibold">Expenses</h2>
 
                     <button
-                        className="text-sm border px-4 py-2 rounded hover:bg-gray-100"
+                        className={`${members.length <2 ? "border px-4 py-2 rounded !cursor-not-allowed opacity-50" : "text-sm border px-4 py-2 rounded hover:bg-gray-100"}`}
                         onClick={() => setShowAddExpense(true)}
+                        disabled={members.length === 0}
                     >
                         + Add Expense
                     </button>
