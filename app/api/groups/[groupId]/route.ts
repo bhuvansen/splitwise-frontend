@@ -3,8 +3,8 @@ import { authOptions } from "@/lib/auth"
 import axios from "axios"
 import { NextResponse } from "next/server"
 
-export async function DELETE(_req: Request, { params }: { params: { groupId: string } }) {
-    const { groupId } = await params
+export async function DELETE(_req: Request, context: { params: Promise<{ groupId: string }> }) {
+    const { groupId } = await context.params
     const session = await getServerSession(authOptions)
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

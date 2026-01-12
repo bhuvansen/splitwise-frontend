@@ -3,9 +3,9 @@ import axios from "axios"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
-export async function POST(req: NextRequest, { params }: { params: { groupId: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ groupId: string }> }) {
     try {
-        const { groupId } = await params
+        const { groupId } = await context.params
         const session = await getServerSession(authOptions)
 
         if (!session) {

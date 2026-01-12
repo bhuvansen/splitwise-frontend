@@ -3,8 +3,8 @@ import axios from "axios"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
-export async function PUT(req: NextRequest, { params }: { params: { expenseId: string } }) {
-    const { expenseId } = await params
+export async function PUT(req: NextRequest, context: { params: Promise<{ expenseId: string }> }) {
+    const { expenseId } =  await context.params
     try {
         const session = await getServerSession(authOptions)
         if (!session) {
@@ -30,8 +30,8 @@ export async function PUT(req: NextRequest, { params }: { params: { expenseId: s
 }
 
 
-export async function DELETE(req: NextRequest, { params }: { params: { expenseId: string } }) {
-    const { expenseId } = await params
+export async function DELETE(req: NextRequest, context: { params: Promise<{ expenseId: string }> }) {
+    const { expenseId } = await context.params
     try {
         const session = await getServerSession(authOptions) 
         if (!session) {
