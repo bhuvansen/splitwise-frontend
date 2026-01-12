@@ -13,8 +13,9 @@ export async function getOverallBalances(): Promise<OverallBalance[]> {
     if (!session) {
         throw new Error("Not authenticated")
     }
-
+    console.log("Session:", session)
     const token = (session as any).accessToken
+    console.log("Access Token:", token)
     try {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/groups/overall/balances`, {
             headers: {
