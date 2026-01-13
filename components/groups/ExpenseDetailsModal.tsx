@@ -127,7 +127,8 @@ export default function ExpenseDetailsModal({
                             <p className="text-sm font-medium">Split</p>
 
                             {expense.splits.map((split) => {
-                                const name = members.find((m) => m.user.id === split.userId)?.user.name
+                                const name =
+                                    members.find((m) => m.user.id === split.userId)?.user.name || "Unknown user"
 
                                 return (
                                     <div key={split.userId} className="flex justify-between text-sm">
@@ -226,7 +227,9 @@ export default function ExpenseDetailsModal({
                 )}
                 <div className="flex justify-between">
                     <div>
-                        <button className="border px-4 py-2 bg-red-600 text-white rounded" onClick={handleDelete}>Delete</button>
+                        <button className="border px-4 py-2 bg-red-600 text-white rounded" onClick={handleDelete}>
+                            Delete
+                        </button>
                     </div>
                     <div className="flex justify-end gap-2">
                         {isEditing ? (

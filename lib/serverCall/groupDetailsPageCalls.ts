@@ -137,3 +137,11 @@ export async function deleteExpense(expenseId: string) {
         throw new Error(err.message || "Something went wrong")
     }   
 }
+
+export async function deleteMemberFromGroup(groupId: string, memberId: string) {
+    try {
+        await axios.delete(`/api/groups/${groupId}/members/${memberId}`)
+    } catch (err: any) {
+        throw new Error(err.message || "Something went wrong")
+    }   
+}

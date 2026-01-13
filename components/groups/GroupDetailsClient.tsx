@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import AddMemberModal from "./AddMemberModal"
-import { Expense } from "@/lib/serverCall/groupDetailsPageCalls"
+import { deleteMemberFromGroup, Expense } from "@/lib/serverCall/groupDetailsPageCalls"
 import Link from "next/link"
 import AddExpenseModal from "./AddExpenseModal"
 import ExpenseDetailsModal from "./ExpenseDetailsModal"
 import SettleUpModal from "./SettleUpModal"
+import { toast } from "sonner"
+import DeleteMemberModal from "./DeleteMemberModal"
 
 export type Member = {
     id: string
@@ -41,6 +43,8 @@ export default function GroupDetailsClient({
     const [showAddExpense, setShowAddExpense] = useState(false)
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
     const [showSettleModal, setShowSettleModal] = useState(false)
+    const [showRemove, setShowRemove] = useState(false)
+    const [memberUserId, setMemberUserId] = useState<string>("")
     const router = useRouter()
 
     const currentUserId = members.find((m) => m.user.email === currentEmailId)?.user.id || ""
@@ -68,6 +72,7 @@ export default function GroupDetailsClient({
 
         return balanceMap
     }, [members, expenses, settlements])
+
     const pairwiseBalances = useMemo(() => {
         const map: Record<string, number> = {}
 
@@ -111,7 +116,26 @@ export default function GroupDetailsClient({
 
         return map
     }, [members, expenses, settlements, currentUserId])
+    
     const hasOutstandingPayments = Object.values(pairwiseBalances).some((amount) => amount < 0)
+    
+    const deleteHanlder = async () => {
+        if (balances[memberUserId] !== 0) {
+            toast.error("Cannot delete member, as the member is not settled up yet.")
+            setShowRemove(false)
+        } else {
+            try {
+                await deleteMemberFromGroup(groupId, memberUserId)
+                router.refresh()
+                toast.success("Member deleted successfully.")
+                setShowRemove(false)
+            } catch (error) {
+                toast.error("Failed to delete member.")
+                setShowRemove(false)
+            }
+        }
+    }
+
     return (
         <div className="px-6 pt-12 max-w-3xl">
             <div className="flex items-center justify-between mb-6">
@@ -124,8 +148,19 @@ export default function GroupDetailsClient({
 
             <ul className="border rounded p-4 space-y-3">
                 {members.map((member) => (
-                    <li key={member.id} className="flex flex-col">
+                    <li key={member.id} className="flex flex-row justify-between">
                         <span className="font-medium">{member.user.name || "Unnamed"}</span>
+                        {members.length > 1 && (
+                            <button
+                                className="text-sm text-red-600"
+                                onClick={() => {
+                                    setShowRemove(true)
+                                    setMemberUserId(member.user.id)
+                                }}
+                            >
+                                Remove
+                            </button>
+                        )}
                     </li>
                 ))}
             </ul>
@@ -190,7 +225,11 @@ export default function GroupDetailsClient({
                     <h2 className="text-xl font-semibold">Expenses</h2>
 
                     <button
-                        className={`${members.length <2 ? "border px-4 py-2 rounded !cursor-not-allowed opacity-50" : "text-sm border px-4 py-2 rounded hover:bg-gray-100"}`}
+                        className={`${
+                            members.length < 2
+                                ? "border px-4 py-2 rounded !cursor-not-allowed opacity-50"
+                                : "text-sm border px-4 py-2 rounded hover:bg-gray-100"
+                        }`}
                         onClick={() => setShowAddExpense(true)}
                         disabled={members.length === 0}
                     >
@@ -277,6 +316,9 @@ export default function GroupDetailsClient({
 
             {showAdd && (
                 <AddMemberModal groupId={groupId} onClose={() => setShowAdd(false)} onAdded={() => router.refresh()} />
+            )}
+            {showRemove && (
+                <DeleteMemberModal onClose={() => setShowRemove(false)} deleteMemberHandler={deleteHanlder} />
             )}
         </div>
     )
