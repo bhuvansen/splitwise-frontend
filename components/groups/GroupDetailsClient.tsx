@@ -2,29 +2,15 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import AddMemberModal from "./AddMemberModal"
-import { deleteMemberFromGroup, Expense } from "@/lib/serverCall/groupDetailsPageCalls"
+import AddMemberModal from "./member/AddMemberModal"
+import { deleteMemberFromGroup } from "@/lib/serverCall/groupDetailsPageCalls"
 import Link from "next/link"
-import AddExpenseModal from "./AddExpenseModal"
-import ExpenseDetailsModal from "./ExpenseDetailsModal"
-import SettleUpModal from "./SettleUpModal"
 import { toast } from "sonner"
-import DeleteMemberModal from "./DeleteMemberModal"
-
-export type Member = {
-    id: string
-    user: {
-        id: string
-        email: string
-        name: string
-    }
-}
-
-type Settlement = {
-    fromUserId: string
-    toUserId: string
-    amount: number
-}
+import DeleteMemberModal from "./member/DeleteMemberModal"
+import ExpenseSection from "./expense/ExpenseSection"
+import SettleUpModal from "./balanceAndSettle/SettleUpModal"
+import UserBalanceSection from "./balanceAndSettle/UserBalanceSection"
+import { GroupDetailsClientType } from "@/utils/types"
 
 export default function GroupDetailsClient({
     groupId,
@@ -32,16 +18,8 @@ export default function GroupDetailsClient({
     expenses,
     settlements,
     currentEmailId,
-}: {
-    groupId: string
-    members: Member[]
-    expenses: Expense[]
-    settlements: Settlement[]
-    currentEmailId: string
-}) {
+}: GroupDetailsClientType) {
     const [showAdd, setShowAdd] = useState(false)
-    const [showAddExpense, setShowAddExpense] = useState(false)
-    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
     const [showSettleModal, setShowSettleModal] = useState(false)
     const [showRemove, setShowRemove] = useState(false)
     const [memberUserId, setMemberUserId] = useState<string>("")
@@ -116,9 +94,9 @@ export default function GroupDetailsClient({
 
         return map
     }, [members, expenses, settlements, currentUserId])
-    
+
     const hasOutstandingPayments = Object.values(pairwiseBalances).some((amount) => amount < 0)
-    
+
     const deleteHanlder = async () => {
         if (balances[memberUserId] !== 0) {
             toast.error("Cannot delete member, as the member is not settled up yet.")
@@ -165,37 +143,7 @@ export default function GroupDetailsClient({
                 ))}
             </ul>
 
-            <div className="border rounded p-4 mt-4 mb-4">
-                <h2 className="font-semibold mb-3">Group Balance</h2>
-
-                {Object.values(pairwiseBalances).every((v) => v === 0) ? (
-                    <p className="text-sm text-gray-500">You are fully settled</p>
-                ) : (
-                    <ul className="space-y-2 text-sm">
-                        {members
-                            .filter((m) => m.user.id !== currentUserId)
-                            .map((member) => {
-                                const amount = pairwiseBalances[member.user.id]
-
-                                if (amount === 0) return null
-
-                                return (
-                                    <li key={member.user.id} className="flex justify-between">
-                                        <span>
-                                            {amount > 0
-                                                ? `${member.user.name} owes you`
-                                                : `You owe ${member.user.name}`}
-                                        </span>
-
-                                        <span className={amount > 0 ? "text-green-600" : "text-red-600"}>
-                                            ₹{Math.abs(amount)}
-                                        </span>
-                                    </li>
-                                )
-                            })}
-                    </ul>
-                )}
-            </div>
+            <UserBalanceSection pairwiseBalances={pairwiseBalances} members={members} currentUserId={currentUserId} />
 
             <button
                 className={`px-4 py-2 rounded text-white ${
@@ -206,6 +154,8 @@ export default function GroupDetailsClient({
             >
                 Settle up
             </button>
+
+            <ExpenseSection groupId={groupId} members={members} expenses={expenses} currentUserId={currentUserId} />
 
             {showSettleModal && (
                 <SettleUpModal
@@ -219,107 +169,15 @@ export default function GroupDetailsClient({
                 />
             )}
 
-            {/* Expenses Section */}
-            <div className="mt-10">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Expenses</h2>
-
-                    <button
-                        className={`${
-                            members.length < 2
-                                ? "border px-4 py-2 rounded !cursor-not-allowed opacity-50"
-                                : "text-sm border px-4 py-2 rounded hover:bg-gray-100"
-                        }`}
-                        onClick={() => setShowAddExpense(true)}
-                        disabled={members.length === 0}
-                    >
-                        + Add Expense
-                    </button>
-                </div>
-
-                {expenses.length === 0 ? (
-                    <p className="text-sm text-gray-500">No expenses yet.</p>
-                ) : (
-                    <ul className="space-y-3">
-                        {expenses.map((expense) => {
-                            const isPayer = expense.paidByUserId === currentUserId
-
-                            let personalAmount: number | null = null
-                            let label = ""
-
-                            if (isPayer) {
-                                // You paid → others owe you
-                                personalAmount = expense.splits
-                                    .filter((s) => s.userId !== currentUserId)
-                                    .reduce((sum, s) => sum + s.shareAmount, 0)
-
-                                label = "You get"
-                            } else {
-                                // You owe
-                                const mySplit = expense.splits.find((s) => s.userId === currentUserId)
-
-                                if (mySplit) {
-                                    personalAmount = mySplit.shareAmount
-                                    label = "You owe"
-                                }
-                            }
-
-                            return (
-                                <li
-                                    key={expense.expenseId}
-                                    className="border rounded p-4 cursor-pointer hover:bg-gray-50"
-                                    onClick={() => setSelectedExpense(expense)}
-                                >
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <p className="font-medium">{expense.description}</p>
-
-                                            {personalAmount !== null && (
-                                                <p
-                                                    className={`text-sm ${
-                                                        label === "You owe" ? "text-red-600" : "text-green-600"
-                                                    }`}
-                                                >
-                                                    {label} ₹{personalAmount}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <span className="font-semibold">₹{expense.amount}</span>
-                                    </div>
-                                </li>
-                            )
-                        })}
-                    </ul>
-                )}
-            </div>
-            <Link href="/groups" className="text-sm text-gray-500 hover:font-bold mb-6 inline-block">
-                ← Back to Groups
-            </Link>
-            {showAddExpense && (
-                <AddExpenseModal
-                    groupId={groupId}
-                    members={members}
-                    onClose={() => setShowAddExpense(false)}
-                    onCreated={() => router.refresh()}
-                />
-            )}
-            {selectedExpense && (
-                <ExpenseDetailsModal
-                    expense={selectedExpense}
-                    members={members}
-                    onClose={() => setSelectedExpense(null)}
-                    // groupId={groupId}
-                    onSave={() => router.refresh()}
-                />
-            )}
-
             {showAdd && (
                 <AddMemberModal groupId={groupId} onClose={() => setShowAdd(false)} onAdded={() => router.refresh()} />
             )}
             {showRemove && (
                 <DeleteMemberModal onClose={() => setShowRemove(false)} deleteMemberHandler={deleteHanlder} />
             )}
+            <Link href="/groups" className="text-sm text-gray-500 hover:font-bold mb-6 inline-block">
+                ← Back to Groups
+            </Link>
         </div>
     )
 }

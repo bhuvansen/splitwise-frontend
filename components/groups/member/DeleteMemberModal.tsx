@@ -1,13 +1,9 @@
 "use client"
 
+import { DeleteMemberModalType } from "@/utils/types"
 import { useState } from "react"
 
-interface Props {
-    onClose: () => void
-    deleteMemberHandler: () => void
-}
-
-export default function DeleteMemberModal({ onClose, deleteMemberHandler }: Props) {
+export default function DeleteMemberModal({ onClose, deleteMemberHandler }: DeleteMemberModalType) {
     const [deleting, setDeleting] = useState(false)
 
     return (
@@ -23,7 +19,7 @@ export default function DeleteMemberModal({ onClose, deleteMemberHandler }: Prop
                         Cancel
                     </button>
                     <button
-                        onClick={()=>{
+                        onClick={() => {
                             setDeleting(true)
                             deleteMemberHandler()
                         }}

@@ -2,15 +2,6 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import axios from "axios"
 
-export type GroupMember = {
-    id: string
-    user: {
-        id: string
-        email: string
-        name: string
-    }
-}
-
 export async function getGroupDetailsPageProps(groupId: string) {
     const session = await getServerSession(authOptions)
     if (!session) throw new Error("Not authenticated")
@@ -30,20 +21,6 @@ export async function getGroupDetailsPageProps(groupId: string) {
     const members = await res.json()
 
     return { members }
-}
-
-export type ExpenseSplit = {
-    userId: string
-    shareAmount: number
-}
-
-export type Expense = {
-    expenseId: string
-    description: string
-    amount: number
-    paidByUserId: string
-    createdAt: string // Instant → string in JSON
-    splits: ExpenseSplit[]
 }
 
 export async function getGroupExpenses(groupId: string) {
@@ -103,7 +80,7 @@ export async function createSettlement(
         fromUserId: string
         toUserId: string
         amount: number
-    }
+    },
 ) {
     try {
         await axios.post(`/api/groups/${groupId}/settlements`, payload)
@@ -119,7 +96,7 @@ export async function updateExpense(
         description: string
         paidByUserId: string
         splits: { userId: string; shareAmount: number }[]
-    }
+    },
 ) {
     try {
         const res = await axios.put(`/api/expenses/${expenseId}`, payload)
@@ -129,13 +106,12 @@ export async function updateExpense(
     }
 }
 
-
 export async function deleteExpense(expenseId: string) {
     try {
         await axios.delete(`/api/expenses/${expenseId}`)
     } catch (err: any) {
         throw new Error(err.message || "Something went wrong")
-    }   
+    }
 }
 
 export async function deleteMemberFromGroup(groupId: string, memberId: string) {
@@ -143,5 +119,5 @@ export async function deleteMemberFromGroup(groupId: string, memberId: string) {
         await axios.delete(`/api/groups/${groupId}/members/${memberId}`)
     } catch (err: any) {
         throw new Error(err.message || "Something went wrong")
-    }   
+    }
 }

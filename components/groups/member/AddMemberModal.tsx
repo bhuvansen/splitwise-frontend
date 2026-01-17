@@ -1,5 +1,6 @@
 "use client";
 
+import { AddMemberModalType } from "@/utils/types";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -7,11 +8,7 @@ export default function AddMemberModal({
   groupId,
   onClose,
   onAdded,
-}: {
-  groupId: string;
-  onClose: () => void;
-  onAdded: () => void;
-}) {
+}: AddMemberModalType) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 

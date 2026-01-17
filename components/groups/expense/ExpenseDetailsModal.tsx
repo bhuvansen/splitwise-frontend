@@ -1,9 +1,8 @@
 "use client"
 
-import { deleteExpense, Expense, updateExpense } from "@/lib/serverCall/groupDetailsPageCalls"
-import { GroupMember } from "@/lib/serverCall/groupDetailsPageCalls"
+import { deleteExpense,  updateExpense } from "@/lib/serverCall/groupDetailsPageCalls"
+import { ExpenseDetailsModalType, SplitMode } from "@/utils/types"
 import { useEffect, useState } from "react"
-import { SplitMode } from "./AddExpenseModal"
 import { toast } from "sonner"
 
 export default function ExpenseDetailsModal({
@@ -11,12 +10,7 @@ export default function ExpenseDetailsModal({
     members,
     onClose,
     onSave,
-}: {
-    expense: Expense
-    members: GroupMember[]
-    onClose: () => void
-    onSave: () => void
-}) {
+}:ExpenseDetailsModalType) {
     const [isEditing, setIsEditing] = useState(false)
     const [description, setDescription] = useState("")
     const [amount, setAmount] = useState("")
@@ -199,7 +193,7 @@ export default function ExpenseDetailsModal({
                                                 setSplits((prev) => ({
                                                     ...prev,
                                                     [member.user.id]: Number(
-                                                        ((Number(amount) * percent) / 100).toFixed(2)
+                                                        ((Number(amount) * percent) / 100).toFixed(2),
                                                     ),
                                                 }))
                                             }}

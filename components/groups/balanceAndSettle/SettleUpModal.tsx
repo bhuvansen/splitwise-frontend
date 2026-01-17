@@ -2,18 +2,10 @@
 
 import { useState } from "react"
 import { createSettlement } from "@/lib/serverCall/groupDetailsPageCalls"
-import { Member } from "./GroupDetailsClient"
 import { toast } from "sonner"
+import { SettleUpModalType } from "@/utils/types"
 
-type Props = {
-    groupId: string
-    balances: Record<string, number>
-    pairwiseBalances: Record<string, number>
-    members: Member[]
-    currentUserId: string
-    onClose: () => void
-    onSettled: () => void
-}
+
 
 export default function SettleUpModal({
     groupId,
@@ -23,7 +15,7 @@ export default function SettleUpModal({
     currentUserId,
     onClose,
     onSettled,
-}: Props) {
+}: SettleUpModalType) {
     const myBalance = balances[currentUserId]
     const creditors = members.filter((m) => pairwiseBalances[m.user.id] < 0)
 
